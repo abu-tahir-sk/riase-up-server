@@ -22,7 +22,7 @@ const run = async () => {
   try {
 //     await client.connect();
 //     await client.bd("raise-up").command({ ping: 1 });
-    console.log("pinged ................");
+    console.log("pinged .............");
   } finally {
     // await client.close()
   }
