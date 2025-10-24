@@ -2,6 +2,7 @@ const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 require("dotenv").config();
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -20,18 +21,75 @@ const client = new MongoClient(uri, {
 
 const run = async () => {
   try {
-    //     await client.connect();
-    //     await client.bd("raise-up").command({ ping: 1 });
-
     const campaignCollection = client.db("campaignDB").collection("campaign");
+    const donationCollection = client.db("campaignDB").collection("donations");
 
-    app.get("/campaign", async (req, res) => {
+    app.post("/donate/:id", async (req, res) => {
+      const campaignId = req.params.id;
+      const { userEmail, userName,thumbnail,
+        title,
+        campaignType,
+        description,
+        count,
+        date,
+         } = req.body;
+      const campaign = await campaignCollection.findOne({
+        _id: new ObjectId(campaignId),
+      });
+      const donationData = {
+        campaignId: new ObjectId(campaignId),
+        campaignTitle: campaign.title,
+        userEmail,
+        userName,
+        thumbnail,
+        title,
+        campaignType,
+        description,
+        count,
+        date,
+        donatedAt: new Date(),
+      };
+      const result = await donationCollection.insertOne(donationData);
+
+      res.send({
+        donationId: result.insertedId,
+      });
+    });
+
+    app.get("/myDonations", async (req, res) => {
       const email = req.query.email;
-      const query = email ? { useEmail: email } : {};
-      const cursor = campaignCollection.find(query);
-      const result = await cursor.toArray();
+      if (!email) return res.status(400).send({ message: "Email is required" });
+      const donations = await donationCollection
+        .find({ userEmail: email })
+        .toArray();
+      res.send(donations);
+    });
+
+    //  all campaigns
+    app.get("/campaign", async (req, res) => {
+      const result = await campaignCollection.find().toArray();
       res.send(result);
     });
+
+    app.get("/myCampaign", async (req, res) => {
+      const email = req.query.email;
+      let query = {};
+      if (email) {
+        query = { userEmail: email };
+      }
+      const result = await campaignCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/donate/:id", async (req, res) => {
+      const id = req.params.id;
+      const email = req.query.email;
+
+      const query = { _id: new ObjectId(id), userEmail: email };
+      const result = await campaignCollection.findOne(query);
+
+      res.send(result);
+    });
+
     app.get("/campaign/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -39,19 +97,50 @@ const run = async () => {
       res.send(result);
     });
 
+    //  campaign
     app.post("/campaign", async (req, res) => {
       const newCampaign = req.body;
-
-      console.log(newCampaign);
       const result = await campaignCollection.insertOne(newCampaign);
       res.send(result);
     });
 
-    console.log("pinged .............");
-  } finally {
-    // await client.close()
+    //  update campaign
+    app.put("/campaign/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedCampaign = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          thumbnail: updatedCampaign.thumbnail,
+          title: updatedCampaign.title,
+          campaignType: updatedCampaign.campaignType,
+          description: updatedCampaign.description,
+          count: updatedCampaign.count,
+          date: updatedCampaign.date,
+          userEmail: updatedCampaign.userEmail,
+          userName: updatedCampaign.userName,
+        },
+      };
+
+      const result = await campaignCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // delete campaign
+    app.delete("/campaign/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+      const result = await campaignCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    console.log("MongoDB connected and routes are ready");
+  } catch (error) {
+    console.error(error);
   }
 };
+
 run().catch(console.log);
 
 app.get("/", (req, res) => {
@@ -59,5 +148,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`${port}`);
+  console.log(`Server running on port ${port}`);
 });
