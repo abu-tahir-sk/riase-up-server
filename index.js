@@ -87,7 +87,7 @@ const run = async () => {
       const { sort } = req.query;
       let sortOrder = 1;
       if (sort === "desc") sortOrder = -1;
-      console.log(sort);
+     
       const result = await campaignCollection
         .find()
         .sort({ date: sortOrder })
@@ -159,13 +159,13 @@ const run = async () => {
       res.send(result);
     });
 
-    console.log("MongoDB connected and routes are ready");
+   
   } catch (error) {
-    console.error(error);
+    
   }
 };
 
-run().catch(console.log);
+run().catch();
 
 app.get("/", (req, res) => {
   res.send("Raise making server is running");
