@@ -26,16 +26,32 @@ const run = async () => {
 
     app.post("/donate/:id", async (req, res) => {
       const campaignId = req.params.id;
-      const { userEmail, userName,thumbnail,
+      const {
+        userEmail,
+        userName,
+        thumbnail,
         title,
         campaignType,
         description,
         count,
         date,
-         } = req.body;
+      } = req.body;
+
       const campaign = await campaignCollection.findOne({
         _id: new ObjectId(campaignId),
       });
+
+      const now = new Date();
+      const deadline = new Date(campaign.deadline);
+
+      if (deadline.getTime() < now.getTime()) {
+    // deadline over
+    return res.status(400).send({
+      message: "This campaign's deadline is over. Donation not allowed.",
+    });
+  }
+
+
       const donationData = {
         campaignId: new ObjectId(campaignId),
         campaignTitle: campaign.title,
@@ -47,6 +63,7 @@ const run = async () => {
         description,
         count,
         date,
+        campaignId: new ObjectId(campaignId),
         donatedAt: new Date(),
       };
       const result = await donationCollection.insertOne(donationData);
@@ -67,7 +84,14 @@ const run = async () => {
 
     //  all campaigns
     app.get("/campaign", async (req, res) => {
-      const result = await campaignCollection.find().toArray();
+      const { sort } = req.query;
+      let sortOrder = 1;
+      if (sort === "desc") sortOrder = -1;
+      console.log(sort);
+      const result = await campaignCollection
+        .find()
+        .sort({ date: sortOrder })
+        .toArray();
       res.send(result);
     });
 
