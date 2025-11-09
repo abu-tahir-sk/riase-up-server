@@ -1,6 +1,6 @@
 # RAISE UP
 
----    https://eclectic-crumble-5ce2eb.netlify.app/allCampaign
+---    https://rise-up-html.netlify.app/
 
 ## Details Page Backend Documentation
 
